@@ -1,0 +1,1 @@
+../../../RAW-CASACORE/tables/Tables/ScaColDesc_tmpl.cc

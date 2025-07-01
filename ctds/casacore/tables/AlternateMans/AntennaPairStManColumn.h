@@ -1,0 +1,1 @@
+../../../RAW-CASACORE/tables/AlternateMans/AntennaPairStManColumn.h

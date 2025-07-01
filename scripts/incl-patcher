@@ -1,0 +1,123 @@
+#!/usr/bin/perl
+
+use File::Copy;
+use File::Path qw(make_path);
+use IPC::Open3;
+use Symbol qw(gensym);
+use IO::Select;
+use File::Basename;
+
+@make_command = qw(make tLargeZarr05);
+$where_to_find_incl = "/home/zuul06-2/dschieb/casa/ctds-pybind/tensorstore";
+$where_to_copy_incl = "/home/zuul06-2/dschieb/casa/ctds-pybind/include";
+%logging = ( path => "./incl-patcher.log", stamp => timestamp( ) );
+
+sub timestamp {
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+    return sprintf( "%04d%02d%02d %02d:%02d:%02d",
+                    $year+1900,$mon+1,$mday,$hour,$min,$sec );
+}
+
+sub logit {
+    open( my $fh, ">> $logging{path}" ) or die "could not open log file";
+    print $fh "$logging{stamp} ", join(" ", @_), "\n";
+    close( $fh );
+}
+
+sub execute_command {
+    my @command = @_; # The command array is passed as @_
+
+    # Declare filehandles for STDIN (not needed for this example), STDOUT, and STDERR
+    my ($infh, $outfh, $errfh, $pid);
+
+    # Create a temporary filehandle for STDERR
+    $errfh = gensym();
+
+    # Open the process and redirect STDOUT and STDERR to our filehandles
+    # Pass the command as an array to open3
+    $pid = open3($infh, $outfh, $errfh, @command);
+
+    # Check if the process was created successfully
+    unless (defined $pid) {
+        warn "Could not fork process for command: @command - $!";
+        return (-1, [], []); # Return -1 for exit status on failure
+    }
+
+    # Variables to store captured output
+    my @stdout_lines = ();
+    my @stderr_lines = ();
+
+    # Use IO::Select to read from the STDOUT and STDERR filehandles without blocking
+    my $sel = IO::Select->new();
+    $sel->add($outfh, $errfh);
+
+    # Read from the filehandles until both are closed
+    while (my @ready = $sel->can_read(1)) {  # Added a timeout of 1 second for the select call
+        foreach my $fh (@ready) {
+            my $line = <$fh>;
+            if (!defined $line) {
+                # End of filehandle reached, remove it from the select set
+                $sel->remove($fh);
+                next;
+            }
+            if ($fh == $outfh) {
+                push @stdout_lines, $line;
+            } elsif ($fh == $errfh) {
+                push @stderr_lines, $line;
+            } else {
+                # This should not happen
+                warn "Unexpected filehandle in select loop: $fh\n";
+            }
+        }
+    }
+
+    # Close the filehandles opened with open3
+    close $infh if defined $infh;
+    close $outfh;
+    close $errfh;
+
+    # Wait for the child process to finish and get the exit status
+    waitpid($pid, 0);
+    my $exit_status = $? >> 8; # Extract the exit code from $?
+
+    # Return the exit status and references to the captured arrays
+    return ($exit_status, \@stdout_lines, \@stderr_lines);
+}
+
+my ($exit_code, $stdout_array_ref, $stderr_array_ref) = execute_command(@make_command);
+
+my $last_include_file = '';
+my $include_file = 'xxx';
+
+while ( $exit_code && $last_include_file ne $include_file ) {
+
+    $last_include_file = $include_file;
+    $include_file = '';
+
+    # Dereference the returned array references to access the captured lines
+    my @stdout = @$stdout_array_ref;
+    my @stderr = @$stderr_array_ref;
+    foreach my $line ( @stderr ) {
+        if ( $line =~ m|^.*?#include\s+["<](.*?)[>"].*| ) {
+            $include_file = $1;
+        }
+    }
+
+    die "Could not find missing include for: ", join(' ',@make_command) unless $include_file;
+
+    my $source = "$where_to_find_incl/$include_file";
+    if ( -e  $source ) {
+        my $target = "$where_to_copy_incl/$include_file";
+        my $target_dir = dirname($target);
+        if ( ! -d $target_dir ) {
+            make_path($target_dir) or die "could not create $target_dir: $!";
+        }
+        copy( $source, $target ) or die "could not copy from $source to $target: $!";
+        logit( "copied $source <TO> $target" );
+        print "$include_file\n";
+    } else {
+        die "could not find $source";
+    }
+
+    ($exit_code, $stdout_array_ref, $stderr_array_ref) = execute_command(@make_command);
+}

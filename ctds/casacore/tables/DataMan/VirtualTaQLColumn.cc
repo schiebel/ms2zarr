@@ -1,0 +1,1 @@
+../../../RAW-CASACORE/tables/DataMan/VirtualTaQLColumn.cc

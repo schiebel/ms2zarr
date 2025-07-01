@@ -1,0 +1,1 @@
+../../../RAW-CASACORE/casa/Logging/MemoryLogSink.h

@@ -1,0 +1,447 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+index c4f99899..c8dd6230 100644
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -5,6 +5,103 @@ package(default_visibility = ["//visibility:public"])
+ 
+ exports_files(glob(["*"]))
+ 
++# In your BUILD.bazel file
++#cc_library(
++#    name = "tensorstore_with_zarr",
++#    deps = [
++#        "//tensorstore:tensorstore",
++#        "//tensorstore/driver/zarr",
++#        "//tensorstore/driver/zarr3",
++#        "//tensorstore/kvstore/file",
++#        "//tensorstore/kvstore/memory",
++#        # Add other kvstore backends you might need:
++#        # "//tensorstore/kvstore/gcs",
++#        # "//tensorstore/kvstore/s3",
++#        # Add codecs that zarr might use:
++#        "//tensorstore/driver/zarr:blosc",
++#        "//tensorstore/driver/zarr:bzip2",
++#        "//tensorstore/driver/zarr:gzip",
++#        "//tensorstore/driver/zarr:zlib",
++#        "//tensorstore/driver/zarr:zstd",
++#    ],
++#    visibility = ["//visibility:public"],
++#)
++#
++## Create a shared library version
++#cc_binary(
++#    name = "libtensorstore_complete.so",
++#    linkshared = True,
++#    deps = [":tensorstore_with_zarr"],
++#)
++#
++#----------------------------------------------------------------------------------------------------------------------------------
++#cc_library(
++#    name = "tensorstore_with_zarr",
++#    deps = [
++#        "//tensorstore:tensorstore",
++#        "//tensorstore/driver/zarr",
++#        "//tensorstore/driver/zarr3",
++#        "//tensorstore/kvstore/file",
++#        # Add these missing dependencies:
++#        "@com_google_absl//absl/status",
++#        "@com_google_absl//absl/log:log",
++#        "@com_google_absl//absl/log:check",
++#        "//tensorstore/util:result",
++#        "//tensorstore/util:json",
++#        "//tensorstore/internal:json_binding",
++#        "//tensorstore/serialization:json",
++#    ],
++#    visibility = ["//visibility:public"],
++#    alwayslink = True,  # Force linking of all symbols
++#)
++#
++#cc_binary(
++#    name = "libtensorstore_complete.so",
++#    linkshared = True,
++#    deps = [":tensorstore_with_zarr"],
++#)
++#----------------------------------------------------------------------------------------------------------------------------------
++#cc_library(
++#    name = "tensorstore_with_zarr",
++#    deps = [
++#        "//tensorstore:tensorstore",
++#        "//tensorstore/driver/zarr",
++#        "//tensorstore/driver/zarr3",
++#        "//tensorstore/kvstore/file",
++#        "//tensorstore/spec",
++#    ],
++#    visibility = ["//visibility:public"],
++#)
++#
++## Create a shared library version
++#cc_binary(
++#    name = "libtensorstore_complete.so",
++#    linkshared = True,
++#    deps = [":tensorstore_with_zarr"],
++#)
++#----------------------------------------------------------------------------------------------------------------------------------
++cc_library(
++    name = "tensorstore_with_zarr",
++    deps = [
++        "//tensorstore:tensorstore",
++        "//tensorstore/driver/zarr",
++        "//tensorstore/driver/zarr3",
++        "//tensorstore/kvstore/file",
++        "//tensorstore:spec",
++        "//tensorstore:index_space",
++    ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
++    # This instructs Bazel to build a shared library (.so file)
++    visibility = ["//visibility:public"],
++)
++# Create a shared library version
++cc_binary(
++    name = "libtensorstore_complete.so",
++    linkshared = True,
++    deps = [":tensorstore_with_zarr"],
++)
++#----------------------------------------------------------------------------------------------------------------------------------
+ # Config settings. Aliases can be imported into a BUILD file via a list
+ # comprehension like:
+ #
+diff --git a/tensorstore/BUILD b/tensorstore/BUILD
+index fb7c3f24..ac3f99e0 100644
+--- a/tensorstore/BUILD
++++ b/tensorstore/BUILD
+@@ -722,6 +722,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/status",
+         "@nlohmann_json//:json",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -879,6 +881,8 @@ tensorstore_cc_library(
+         "//tensorstore/util/garbage_collection",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_library(
+diff --git a/tensorstore/driver/BUILD b/tensorstore/driver/BUILD
+index b0835983..5dd6785b 100644
+--- a/tensorstore/driver/BUILD
++++ b/tensorstore/driver/BUILD
+@@ -181,6 +181,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/synchronization",
+         "@nlohmann_json//:json",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+diff --git a/tensorstore/driver/zarr3/BUILD b/tensorstore/driver/zarr3/BUILD
+index 316c5d74..cfe12f11 100644
+--- a/tensorstore/driver/zarr3/BUILD
++++ b/tensorstore/driver/zarr3/BUILD
+@@ -26,6 +26,8 @@ tensorstore_cc_library(
+         ":all_codecs",
+         ":driver",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ alias(
+@@ -89,6 +91,8 @@ tensorstore_cc_library(
+     name = "name_configuration_json_binder",
+     hdrs = ["name_configuration_json_binder.h"],
+     deps = ["//tensorstore/internal/json_binding"],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_library(
+@@ -142,6 +146,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/strings:str_format",
+         "@nlohmann_json//:json",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -240,6 +246,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/synchronization",
+         "@abseil-cpp//absl/time",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_binary(
+@@ -331,4 +339,6 @@ tensorstore_cc_library(
+         "//tensorstore/util:float8",
+         "@abseil-cpp//absl/base",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+diff --git a/tensorstore/index_space/BUILD b/tensorstore/index_space/BUILD
+index 3c42a8f6..43a11775 100644
+--- a/tensorstore/index_space/BUILD
++++ b/tensorstore/index_space/BUILD
+@@ -22,6 +22,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:span",
+         "//tensorstore/util:status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -50,6 +52,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -100,6 +104,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:result",
+         "//tensorstore/util:span",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -148,6 +154,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/meta:type_traits",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ cc_with_non_compile_test(
+@@ -192,6 +200,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/status",
+         "@googletest//:gtest",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_library(
+@@ -211,6 +221,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/status",
+         "@abseil-cpp//absl/strings",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -236,6 +248,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:iterate",
+         "@abseil-cpp//absl/container:inlined_vector",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -265,6 +279,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/status",
+         "@abseil-cpp//absl/strings",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -322,6 +338,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:result",
+         "//tensorstore/util:str_cat",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -430,6 +448,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/strings:str_format",
+         "@nlohmann_json//:json",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -486,6 +506,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/random",
+         "@abseil-cpp//absl/random:bit_gen_ref",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_library(
+@@ -500,6 +522,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -533,6 +557,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -649,6 +675,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -676,6 +704,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -731,6 +761,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -798,6 +830,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -928,6 +962,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/meta:type_traits",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -976,6 +1012,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -1011,6 +1049,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -1064,6 +1104,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:result",
+         "@abseil-cpp//absl/status",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+@@ -1096,6 +1138,8 @@ tensorstore_cc_library(
+         "//tensorstore/util:str_cat",
+         "//tensorstore/util:unit",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+diff --git a/tensorstore/util/BUILD b/tensorstore/util/BUILD
+index 554a5866..6a0bcb30 100644
+--- a/tensorstore/util/BUILD
++++ b/tensorstore/util/BUILD
+@@ -631,6 +631,8 @@ tensorstore_cc_library(
+         "@abseil-cpp//absl/strings:cord",
+         "@abseil-cpp//absl/strings:str_format",
+     ],
++    # Important: This ensures all symbols are available
++    alwayslink = True,
+ )
+ 
+ tensorstore_cc_test(
+diff --git a/third_party/abseil_cpp/workspace.bzl b/third_party/abseil_cpp/workspace.bzl
+index ca6156e9..30770b90 100644
+--- a/third_party/abseil_cpp/workspace.bzl
++++ b/third_party/abseil_cpp/workspace.bzl
+@@ -20,6 +20,37 @@ load("//third_party:repo.bzl", "third_party_http_archive")
+ # REPO_BRANCH = master
+ 
+ def repo():
++    ##########################################################################################
++    ## This is the newest version of abseil-cpp which is available from conda-forge as of   ##
++    ## Tue Jun 24 17:21:19 EDT 2025 which is compatible with the other required conda       ##
++    ## packages. However, it fails to compile with v0.1.75. Moving back to v0.1.74 would    ##
++    ## entail a slew of build changes.                                                      ##
++    ##########################################################################################
++    #maybe(
++    #    third_party_http_archive,
++    #    name = "abseil-cpp",
++    #    doc_version = "20250127.1",  # Changed from "20250429-5f3435aba"
++    #    doc_homepage = "https://abseil.io/",
++    #    urls = [
++    #        "https://github.com/abseil/abseil-cpp/archive/refs/tags/20250127.1.tar.gz",  # Changed URL
++    #    ],
++    #    sha256 = "b396401fd29e2e679cace77867481d388c807671dc2acc602a0259eeb79b7811",  # New SHA256
++    #    strip_prefix = "abseil-cpp-20250127.1",  # Changed from "abseil-cpp-5f3435aba00bcd7f12062d2e8e1839b4eaf1a575"
++    #    repo_mapping = {
++    #        "@com_google_googletest": "@googletest",
++    #    },
++    #    cmake_name = "absl",
++    #    cmake_target_mapping = ABSL_CMAKE_MAPPING,
++    #    cmake_settings = {
++    #        "ABSL_PROPAGATE_CXX_STD": "ON",
++    #        "ABSL_BUILD_TESTING": "OFF",
++    #        "BUILD_TESTING": "OFF",
++    #        "ABSL_BUILD_TEST_HELPERS": "ON",
++    #        "ABSL_USE_EXTERNAL_GOOGLETEST": "ON",
++    #        "ABSL_FIND_GOOGLETEST": "ON",
++    #    },
++    #)
++
+     maybe(
+         third_party_http_archive,
+         name = "abseil-cpp",
